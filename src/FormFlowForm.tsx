@@ -1,10 +1,14 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Linking, type StyleProp, type ViewStyle } from "react-native";
-import { WebView, type WebViewMessageEvent } from "react-native-webview";
+import { WebView as RNWebView, type WebViewMessageEvent, type WebViewProps } from "react-native-webview";
 import { collectAttributes } from "./attributes";
 import type { FormFlowCallbacks, FormFlowConfig, FormFlowEvent } from "./types";
 import { buildFormUrl, isAllowedNavigation, parseEvent } from "./url";
 import { USER_AGENT_SUFFIX } from "./version";
+
+type WebViewHandle = { reload(): void; injectJavaScript(script: string): void };
+// The generic .d.ts types WebView as a FunctionComponent without ref; every platform build is a forwardRef.
+const WebView = RNWebView as unknown as React.ComponentType<WebViewProps & React.RefAttributes<WebViewHandle>>;
 
 export type FormFlowFormProps = FormFlowConfig & FormFlowCallbacks & { style?: StyleProp<ViewStyle> };
 
@@ -26,7 +30,7 @@ export type FormFlowHandle = { /** Start over, ignoring saved progress. */ resta
 
 export const FormFlowForm = forwardRef<FormFlowHandle, FormFlowFormProps>(function FormFlowForm(props, ref) {
   const { style, timeoutMs = 8000 } = props;
-  const web = useRef<WebView>(null);
+  const web = useRef<WebViewHandle>(null);
   const [fresh, setFresh] = useState(false);
   const [nonce, setNonce] = useState(0);
   const ready = useRef(false);

@@ -24,8 +24,9 @@ describe("navigation", () => {
 describe("parseEvent", () => {
   it("parses strings and objects, ignores foreign messages", () => {
     const m = { source: "formflow", type: "step", formId: "f", data: { index: 1, fieldId: "a", total: 3 } };
-    expect(parseEvent(JSON.stringify(m))).toEqual(m);
-    expect(parseEvent(m)).toEqual(m);
+    const { source: _, ...event } = m;
+    expect(parseEvent(JSON.stringify(m))).toEqual(event);
+    expect(parseEvent(m)).toEqual(event);
     expect(parseEvent("nope")).toBeNull();
     expect(parseEvent({ source: "other", type: "step" })).toBeNull();
     expect(parseEvent({ source: "formflow", type: "resize", data: { height: 1 } })).toBeNull();
