@@ -14,6 +14,6 @@ export function useFormFlowOnboarding(o: DecideOptions & { baseUrl: string; stor
     client.decide(d).then((r) => live && setProps(decisionToProps(r)), () => live && setProps(null));
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client, d.entry, d.uid, d.uidSignature, d.atlasToken, d.firstRunOnly, d.test]);
+  }, [client, d.entry, d.uid, d.uidSignature, d.atlasToken, d.firstRunOnly, d.maxAgeHours, d.test]);
   return { status: props === undefined ? "loading" : props ? "show" : "skip", props: props ?? null };
 }

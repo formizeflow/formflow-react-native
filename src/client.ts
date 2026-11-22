@@ -10,6 +10,8 @@ export type DecideOptions = {
   atlasToken?: string;
   /** Show once per person: answers show: false after it was shown, completed or skipped. */
   firstRunOnly?: boolean;
+  /** With firstRunOnly: someone shown but not done still sees it for this many hours after first exposure (server default 24). */
+  maxAgeHours?: number;
   /** Integration tests: no exposure is counted. */
   test?: boolean;
   attributes?: FormFlowConfig["attributes"];
@@ -42,7 +44,7 @@ export class FormFlowClient {
       const res = await f(`${this.o.baseUrl.replace(/\/+$/, "")}/api/v1/public/onboarding/decide`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ entry: d.entry, uid: d.uid, uid_sig: d.uidSignature, atlas_token: d.atlasToken, firstRunOnly: d.firstRunOnly, test: d.test, attributes: collectAttributes({ attributes: d.attributes, appVersion: d.appVersion }), ph_session: d.posthogSessionId, ph_distinct: d.posthogDistinctId }),
+        body: JSON.stringify({ entry: d.entry, uid: d.uid, uid_sig: d.uidSignature, atlas_token: d.atlasToken, firstRunOnly: d.firstRunOnly, maxAgeHours: d.maxAgeHours, test: d.test, attributes: collectAttributes({ attributes: d.attributes, appVersion: d.appVersion }), ph_session: d.posthogSessionId, ph_distinct: d.posthogDistinctId }),
         signal: ctl?.signal,
       });
       if (!res.ok) throw new Error(`decide ${res.status}`);
