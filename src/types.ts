@@ -11,6 +11,10 @@ export type FormFlowEvent =
   | { type: "request"; formId: string; data: FormFlowRequest }
   | { type: "progress"; formId: string; data: { step: number; total: number; percent: number } }
   | { type: "close"; formId: string; data: Record<string, never> }
+  | { type: "skip"; formId: string; data: Record<string, never> }
+  | { type: "holdout"; formId: string; data: { experimentId: string; redirectUrl?: string } }
+  /** An ending asked to leave. `route` is its ctaRoute; `url` is empty when only a route is set, and may be a custom scheme (myapp://tool/x). */
+  | { type: "redirect"; formId: string; data: { url: string; route?: string; target?: "top" | "blank" | "self" } }
   | { type: "error"; formId: string; data: { message: string } };
 
 /** The form asks the app to do something: notifications, tracking, open a URL, sign in, deep link, or a custom name. */
@@ -49,6 +53,16 @@ export type FormFlowConfig = {
   prefill?: Record<string, Scalar>;
   /** Also receive answer values (never for sensitive fields). Default false. */
   includeAnswers?: boolean;
+  /** Statistics consent from your consent banner (Cookie Munch or any other): true | "granted" | false | "denied" | { statistics }. With no signal the form forwards nothing to analytics destinations. Updates while mounted are pushed live. */
+  consent?: boolean | "granted" | "denied" | { statistics: boolean };
+  /** An Atlas session JWT as proof of uid, instead of uidSignature. */
+  atlasToken?: string;
+  /** Show a Skip control; it posts `skip`. */
+  skippable?: boolean;
+  /** Where complete and skip send the app: arrives as a `redirect` event with ff_done=1 / ff_skipped=1. */
+  returnUrl?: string;
+  /** Integration tests: no exposure or conversion is counted. */
+  test?: boolean;
   /** Show the in-form close button. Default false. */
   showClose?: boolean;
 };
@@ -60,6 +74,9 @@ export type FormFlowCallbacks = {
   onAnswer?: (e: EventOf<"answer">["data"]) => void;
   onComplete?: (e: EventOf<"complete">["data"]) => void;
   onClose?: () => void;
+  onSkip?: () => void;
+  onHoldout?: (e: EventOf<"holdout">["data"]) => void;
+  onRedirect?: (e: EventOf<"redirect">["data"]) => void;
   onError?: (e: { message: string }) => void;
   /** Load timeout in ms (default 8000) for the form to report ready. */
   timeoutMs?: number;

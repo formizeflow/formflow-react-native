@@ -46,3 +46,22 @@ describe("identity and appearance", () => {
     expect(parseEvent(m)?.type).toBe("request");
   });
 });
+
+describe("routes, consent and skip", () => {
+  it("maps a redirect to an in-app route", async () => {
+    const { routeOf } = await import("./url");
+    expect(routeOf({ url: "", route: "tool/merge-pdf" })).toBe("tool/merge-pdf");
+    expect(routeOf({ url: "pdfofile://tool/merge-pdf" })).toBe("tool/merge-pdf");
+    expect(routeOf({ url: "https://x.co/a" })).toBeNull();
+  });
+  it("puts consent, skip and return url on the form url", () => {
+    const u = buildFormUrl({ baseUrl: "https://f.co", slug: "x", consent: { statistics: true }, skippable: true, returnUrl: "app://home", test: true });
+    expect(u).toContain("consent=granted");
+    expect(u).toContain("skippable=1&return_url=app%3A%2F%2Fhome&test=1");
+    expect(buildFormUrl({ baseUrl: "https://f.co", slug: "x" })).not.toContain("consent=");
+  });
+  it("parses the new bridge messages", () => {
+    expect(parseEvent(JSON.stringify({ source: "formflow", type: "skip", formId: "f", data: {} }))?.type).toBe("skip");
+    expect(parseEvent(JSON.stringify({ source: "formflow", type: "redirect", formId: "f", data: { url: "", route: "a/b" } }))?.type).toBe("redirect");
+  });
+});

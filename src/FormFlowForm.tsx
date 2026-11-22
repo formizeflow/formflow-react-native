@@ -3,7 +3,7 @@ import { Linking, type StyleProp, type ViewStyle } from "react-native";
 import { WebView as RNWebView, type WebViewMessageEvent, type WebViewProps } from "react-native-webview";
 import { collectAttributes } from "./attributes";
 import type { FormFlowCallbacks, FormFlowConfig, FormFlowEvent } from "./types";
-import { buildFormUrl, isAllowedNavigation, parseEvent } from "./url";
+import { buildFormUrl, consentState, isAllowedNavigation, parseEvent } from "./url";
 import { USER_AGENT_SUFFIX } from "./version";
 
 type WebViewHandle = { reload(): void; injectJavaScript(script: string): void };
@@ -21,6 +21,9 @@ export function dispatch(e: FormFlowEvent, cb: FormFlowCallbacks): void {
     case "answer": cb.onAnswer?.(e.data); break;
     case "complete": cb.onComplete?.(e.data); break;
     case "close": cb.onClose?.(); break;
+    case "skip": cb.onSkip?.(); break;
+    case "holdout": cb.onHoldout?.(e.data); break;
+    case "redirect": cb.onRedirect?.(e.data); break;
     case "error": cb.onError?.(e.data); break;
   }
   cb.onEvent?.(e);
@@ -38,9 +41,15 @@ export const FormFlowForm = forwardRef<FormFlowHandle, FormFlowFormProps>(functi
   const url = useMemo(
     () => buildFormUrl(cfg),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [props.baseUrl, props.slug, props.formId, props.uid, props.uidSignature, props.variant, props.locale, JSON.stringify(props.hidden), JSON.stringify(props.prefill), JSON.stringify(props.attributes), props.includeAnswers, props.showClose, props.resume, fresh, JSON.stringify(props.appearance), props.posthogSessionId, props.posthogDistinctId, props.appVersion],
+    [props.baseUrl, props.slug, props.formId, props.uid, props.uidSignature, props.variant, props.locale, JSON.stringify(props.hidden), JSON.stringify(props.prefill), JSON.stringify(props.attributes), props.includeAnswers, props.showClose, props.resume, fresh, JSON.stringify(props.appearance), props.posthogSessionId, props.posthogDistinctId, props.appVersion, props.atlasToken, props.skippable, props.returnUrl, props.test],
   );
   useImperativeHandle(ref, () => ({ restart: () => { ready.current = false; setFresh(true); setNonce((n) => n + 1); }, reload: () => web.current?.reload() }));
+
+  // Consent changes after the first load are pushed into the page without reloading it.
+  const cs = consentState(props.consent);
+  useEffect(() => {
+    if (cs) web.current?.injectJavaScript(`window.FormFlow&&window.FormFlow.native&&window.FormFlow.native.setConsent(${cs === "granted"});true;`);
+  }, [cs]);
 
   // A slow or failed load must never block the app: tell it once and let it carry on.
   useEffect(() => {

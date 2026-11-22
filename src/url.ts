@@ -14,6 +14,12 @@ export function buildFormUrl(c: FormFlowConfig): string {
   if (c.locale) q.push(`lang=${enc(c.locale)}`);
   if (c.includeAnswers) q.push("answers=1");
   if (c.showClose) q.push("close=1");
+  const cs = consentState(c.consent);
+  if (cs) q.push(`consent=${cs}`);
+  if (c.atlasToken) q.push(`atlas_token=${enc(c.atlasToken)}`);
+  if (c.skippable) q.push("skippable=1");
+  if (c.returnUrl) q.push(`return_url=${enc(c.returnUrl)}`);
+  if (c.test) q.push("test=1");
   if (c.resume === false) q.push("resume=0");
   const sid = c.posthogSessionId ?? c.posthog?.getSessionId?.();
   const did = c.posthogDistinctId ?? c.posthog?.getDistinctId?.();
@@ -29,6 +35,19 @@ export function buildFormUrl(c: FormFlowConfig): string {
   return `${base}/embed/${enc(slug)}?${q.join("&")}`;
 }
 
+/** "granted", "denied" or undefined (no signal: the form holds everything back). */
+export function consentState(v: FormFlowConfig["consent"]): "granted" | "denied" | undefined {
+  if (v && typeof v === "object") v = v.statistics;
+  return v === true || v === "granted" ? "granted" : v === false || v === "denied" ? "denied" : undefined;
+}
+
+/** The in-app route of a redirect: its `route`, else the path of a custom-scheme url (myapp://tool/x gives "tool/x"); null for http(s) addresses. */
+export function routeOf(d: { url?: string; route?: string }): string | null {
+  if (d.route) return d.route;
+  const m = /^(?!https?:)[a-z][a-z0-9+.-]*:\/\/(.+)$/i.exec(d.url ?? "");
+  return m ? m[1].replace(/^\/+/, "") : null;
+}
+
 const hostOf = (u: string): string | null => { const m = /^https?:\/\/([^/?#]+)/i.exec(u); return m ? m[1].toLowerCase() : null; };
 
 /** Only the configured host (and about:blank) may load inside the WebView; everything else opens outside. */
@@ -38,7 +57,7 @@ export function isAllowedNavigation(url: string, baseUrl: string): boolean {
   return h !== null && h === hostOf(baseUrl);
 }
 
-const TYPES = new Set(["request", "ready", "view", "start", "step", "answer", "complete", "submit", "progress", "close", "error", "resize"]);
+const TYPES = new Set(["request", "ready", "view", "start", "step", "answer", "complete", "submit", "progress", "close", "error", "resize", "skip", "holdout", "redirect"]);
 
 /** Parse a WebView message. Returns null for anything that is not a FormFlow message. `submit` is folded into `complete`; `resize` is dropped. */
 export function parseEvent(raw: unknown): FormFlowEvent | null {

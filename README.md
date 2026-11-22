@@ -88,3 +88,26 @@ function Onboarding({ user, next }) {
 ```
 
 `uidSignature` is an HMAC of `uid` computed on your server (see the docs page "Mobile apps"). `ref.current.restart()` starts over without saved progress. `posthog` (optional) links the PostHog session and distinct id. In the form, a link such as `[Enable notifications](https://example.com/#ff-action=notifications)` triggers `onRequest`; the return value goes back to the form.
+
+## FormFlowView and useFormFlowOnboarding
+
+```tsx
+import { FormFlowView, useFormFlowOnboarding } from "@formizeflow/react-native";
+
+function Welcome({ user }) {
+  const { status } = useFormFlowOnboarding({ baseUrl, entry: "app-welcome", uid: user.id, uidSignature: user.sig, firstRunOnly: true });
+  if (status === "loading") return null;
+  if (status === "skip") return <Redirect href="/home" />;          // holdout, already done, offline: never blocks the app
+  return (
+    <FormFlowView
+      baseUrl={baseUrl} entry="app-welcome" uid={user.id} uidSignature={user.sig}
+      consent={cookieConsent.statistics}                           // your consent banner's answer; no signal means nothing is forwarded
+      skippable
+      onRoute={(route) => router.push(`/${route}`)}                 // an ending's ctaRoute, or the path of myapp://tool/x
+      onDone={() => router.replace("/home")}                        // complete, skip, holdout or close, once
+    />
+  );
+}
+```
+
+`FormFlowView` is `FormFlowForm` with the bridge handled: `onDone({ reason })`, `onRoute(route, event)`, plus `onSkip`, `onHoldout`, `onRedirect` and every `FormFlowForm` prop. `consent` accepts `true | "granted" | false | "denied" | { statistics }`, is sent with the first load and pushed live afterwards. Without a consent signal the form forwards nothing to analytics destinations. `atlasToken` replaces `uidSignature` for apps on Atlas; `test` keeps integration traffic out of experiments.

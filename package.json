@@ -1,6 +1,6 @@
 {
   "name": "@formizeflow/react-native",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Show FormFlow forms inside React Native apps (onboarding, surveys, feedback).",
   "license": "MIT",
   "repository": { "type": "git", "url": "git+https://github.com/formizeflow/formflow-react-native.git" },
